@@ -22,4 +22,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.17.4 // indirect
 	github.com/aws/smithy-go v1.13.4 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/sirupsen/logrus v1.9.0 // indirect
+	github.com/ypapax/logrus_conf v0.0.0-20210711042305-9e6ef6ecc90f // indirect
+	golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8 // indirect
 )
