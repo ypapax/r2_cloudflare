@@ -14,6 +14,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"time"
 )
 
 //https://developers.cloudflare.com/r2/examples/aws-sdk-go/
@@ -149,7 +150,7 @@ func createAwsFile(c *s3.Client, fileName string, bb []byte, bucketName string) 
 }
 
 func getAwsFile(c *s3.Client, fileName string, bucketName string) error {
-
+	t1 := time.Now()
 	output, err := c.GetObject(context.TODO(), &s3.GetObjectInput{
 		Bucket:        aws.String(bucketName),
 		Key:           aws.String(fileName), // "path/myfile.jpg"
@@ -158,7 +159,7 @@ func getAwsFile(c *s3.Client, fileName string, bucketName string) error {
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	logrus.Infof("output: %+v", string(b))
+	logrus.Infof("output: %+v, time spent: %+v", string(b), time.Since(t1))
 	if err != nil {
 		return errors.WithStack(err)
 	}
