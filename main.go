@@ -34,6 +34,9 @@ func main() {
 	var accessKeyId = getenv("CLOUDFLARE_R2_Access_Key_ID")
 	var accessKeySecret = getenv("CLOUDFLARE_R2_Secret_Access_Key")
 	var s3api = getenv("CLOUDFLARE_R2_S3_API")
+	var fileName = getenv("FILE_NAME")
+	var operation = getenv("OPERATION")
+	lf := logrus.WithField("fileName", fileName).WithField("operation", operation)
 
 	r2Resolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
 		return aws.Endpoint{
@@ -55,9 +58,11 @@ func main() {
 		if errC != nil {
 			return errors.WithStack(errC)
 		}
-		log.Printf("cbo.ResultMetadata: %+v", cbo.ResultMetadata)
+		lf.Printf("cbo.ResultMetadata: %+v", cbo.ResultMetadata)
 
-		fileName := time.Now().Format("2006_01_02T15_04_05Z07_00")+"_helloFile_.json"
+		if len(fileName) == 0 {
+			fileName = time.Now().Format("2006_01_02T15_04_05Z07_00")+"_helloFile_.json"
+		}
 		type someStruct struct {
 			A, B string
 		}
@@ -67,9 +72,14 @@ func main() {
 		if err != nil {
 			return errors.WithStack(err)
 		}
-		if errCr := createAwsFile(client, fileName, b, bucketName); errCr != nil {
-			return errors.WithStack(errCr)
+		if operation != "READ_ONLY" {
+			if errCr := createAwsFile(client, fileName, b, bucketName); errCr != nil {
+				return errors.WithStack(errCr)
+			}
+		} else {
+			lf.Infof("skip writing")
 		}
+
 
 		if errCr := getAwsFile(client, fileName, bucketName); errCr != nil {
 			return errors.WithStack(errCr)
