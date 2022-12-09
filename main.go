@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
@@ -58,8 +57,17 @@ func main() {
 		}
 		log.Printf("cbo.ResultMetadata: %+v", cbo.ResultMetadata)
 
-		fileName := "helloFile.txt"
-		if errCr := createAwsFile(client, fileName, []byte(`hello content`), bucketName); errCr != nil {
+		fileName := time.Now().Format("2006_01_02T15_04_05Z07_00")+"_helloFile_.json"
+		type someStruct struct {
+			A, B string
+		}
+		var ss = []someStruct{{A: "1", B: time.Now().Format(time.RFC3339)}, {A: "2", B: "22"}}
+		b, err := json.Marshal(ss)
+		//[]byte(`hello content`+time.Now().Format(time.RFC3339))
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		if errCr := createAwsFile(client, fileName, b, bucketName); errCr != nil {
 			return errors.WithStack(errCr)
 		}
 
@@ -68,7 +76,7 @@ func main() {
 		}
 
 
-		listObjectsOutput, err := client.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
+		/*listObjectsOutput, err := client.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
 			Bucket: &bucketName,
 		})
 		if err != nil {
@@ -78,7 +86,7 @@ func main() {
 		for _, object := range listObjectsOutput.Contents {
 			obj, _ := json.MarshalIndent(object, "", "\t")
 			fmt.Println(string(obj))
-		}
+		}*/
 
 		//  {
 		//  	"ChecksumAlgorithm": null,
@@ -90,7 +98,7 @@ func main() {
 		//  	"StorageClass": "STANDARD"
 		//  }
 
-		listBucketsOutput, err := client.ListBuckets(context.TODO(), &s3.ListBucketsInput{})
+		/*listBucketsOutput, err := client.ListBuckets(context.TODO(), &s3.ListBucketsInput{})
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -98,7 +106,7 @@ func main() {
 		for _, object := range listBucketsOutput.Buckets {
 			obj, _ := json.MarshalIndent(object, "", "\t")
 			fmt.Println(string(obj))
-		}
+		}*/
 		return nil
 	}(); err != nil {
 		log.Printf("error: %+v", err)
@@ -110,6 +118,7 @@ func main() {
 }
 
 func createAwsFile(c *s3.Client, fileName string, bb []byte, bucketName string) error {
+	l := logrus.WithField("fileName", fileName)
 	if err := os.WriteFile(fileName, bb, 0777); err != nil {
 		return errors.WithStack(err)
 	}
@@ -128,7 +137,7 @@ func createAwsFile(c *s3.Client, fileName string, bb []byte, bucketName string) 
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	logrus.Infof("stat: %+v", stat)
+	l.Infof("stat: %+v", stat)
 	file, err := os.Open(fileName)
 
 	if err != nil {
@@ -142,7 +151,8 @@ func createAwsFile(c *s3.Client, fileName string, bb []byte, bucketName string) 
 		ContentLength: stat.Size(),
 	})
 
-	logrus.Infof("putObjectOutput: %+v", putObjectOutput)
+	l.Infof("putObjectOutput: %+v", putObjectOutput)
+	l.Infof("file is written with content: %+v", string(bb))
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -150,6 +160,7 @@ func createAwsFile(c *s3.Client, fileName string, bb []byte, bucketName string) 
 }
 
 func getAwsFile(c *s3.Client, fileName string, bucketName string) error {
+	l := logrus.WithField("fileName", fileName)
 	t1 := time.Now()
 	output, err := c.GetObject(context.TODO(), &s3.GetObjectInput{
 		Bucket:        aws.String(bucketName),
@@ -159,7 +170,7 @@ func getAwsFile(c *s3.Client, fileName string, bucketName string) error {
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	logrus.Infof("output: %+v, time spent: %+v", string(b), time.Since(t1))
+	l.Infof("output: %+v, time spent: %+v", string(b), time.Since(t1))
 	if err != nil {
 		return errors.WithStack(err)
 	}
